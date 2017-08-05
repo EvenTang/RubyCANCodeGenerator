@@ -1,0 +1,52 @@
+
+<% 
+# size is count as bit
+def SizeToType(size) 
+	case size
+	when 1..8 then
+	    "uint8_t"
+	when 9..16 then
+	    "uint16_t"
+	when 17..32 then
+	    "uint32_t"
+	when 32..64 then
+		"uint64"
+	else
+		"wrong size!"
+	end
+end
+
+can_database.messages.each do | msg | 
+   class_name = msg.name
+%>
+class <%= class_name %> {
+public:
+    static const uint32_t message_id = <%= msg.id %>;
+    static std::string const message_name;
+public:
+    <%= class_name %>(void): <% msg.signals.each_with_index do | signal, i | %>
+		<%= signal.name %>("<%= signal.name %>")<%= if i == (msg.signals.size - 1) then "" else "," end %>	<% end %>
+    {
+        ;
+    }
+    void UpdateSignalsByMessagePayload(std::array<uint8_t, 8> const & _buffer) { <% msg.signals.each do | signal | %>
+		<%= signal.name %>.m_signal_value = ExractSignalFromMessage<<%= SizeToType(signal.signal_size)%>>(_buffer, <%= signal.start_bit %>, <%= signal.signal_size %>); <% end %>
+    }
+public:	<% msg.signals.each do | signal | %>
+	Signal<<%= SizeToType(signal.signal_size)%>>  <%= signal.name %>; <% end %>
+};
+<% end %>
+
+template <typename T>
+struct Signal {
+	std::string const m_signal_name;
+	T m_signal_value;
+};
+
+template <typename T>
+T ExractSignalFromMessage(
+	std::array<uint8_t, 8> const & _buffer,
+	uint8_t _start_bit,
+	uint8_t _signal_size) {
+	return T(); // todo need to be implemented.
+}
