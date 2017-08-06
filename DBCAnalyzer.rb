@@ -2,9 +2,14 @@ require "erb"
 
 class CANSignal
     attr_accessor :name, :start_bit, :signal_size, :is_big_endian, :is_unsigned
+    attr_accessor :factor, :offset, :minimun, :maximun, :unit, :receivers
+
     def initialize(name = "", start_bit = 0, signal_size = 0, is_big_endian = false, is_unsigned = false)
         @name, @start_bit, @signal_size = name, start_bit, signal_size
         @is_big_endian, @is_unsigned = is_big_endian, is_unsigned
+        @factor, @offset, @minimun, @maximun = 0.0, 0.0, 0.0, 0.0
+        @unit = ""
+        @receivers = []  # store the names of receivers for this signal
     end
 end
 
@@ -43,9 +48,20 @@ class CAN_DBC_Analzyer
     end
 
     def DBCSignalMatcher(line, file_des = nil)
-        if line =~ %r%^\s*SG_\s+(\w+)\s+:\s+(\d+)\|(\d+)@(\d)(\+|-).*$% then
+        if line =~ %r%^\s*SG_\s+(\w+)\s+:\s+(\d+)\|(\d+)@(\d)(\+|-)(.+)$% then
             signal = CANSignal.new($1, $2.to_i, $3.to_i, $4 == "0", $5 == "+")
             signal.start_bit = ChangeMotorolaOrderMSB2LSB($2.to_i, $3.to_i) if signal.is_big_endian
+
+            $6 =~ %r!\((-?\d+(\.\d+)?),(-?\d+(\.\d+)?)\)\s+\[(-?\d+(\.\d+)?)\s*\|\s*(-?\d+(\.\d+)?)\](.+)!
+            signal.factor = $1.to_f
+            signal.offset = $3.to_f
+            signal.minimun = $5.to_f
+            signal.maximun = $7.to_f
+
+            $9 =~ %r!"(\w*)"\s+([\w,]*)!
+            signal.unit = $1
+            signal.receivers = $2.split(",")            
+
             if file_des != nil then
                 file_des.messages.last.signals.push signal          
             end
@@ -87,7 +103,7 @@ File.open( template ) { |fh|
 }
 #=end
 
-#print CAN_DBC_Analzyer.new.methods.collect! {|item| item if item.to_s =~ %r!^\w+Matcher$! }
+
 
 =begin
 template =" Service.java"
