@@ -33,7 +33,7 @@ class CAN_DBC_Analzyer
 		
 		File.open(file_name) do | dbc_file |
 			parser_partterns = CAN_DBC_Analzyer.new.methods.select{
-				 |item| item.to_s =~ %r!^\w+Recognizer$! 
+				 |item| item.to_s =~ %r!^DBC.+Matcher$! 
 				}.map{ |item| method(item) }
 			dbc_file.each_line do | line |
 				parser_partterns.each { | parttern | parttern.call(line, file_descriptor) }
@@ -42,7 +42,7 @@ class CAN_DBC_Analzyer
 		return file_descriptor
 	end
 
-	def CANSignalRecognizer(line, file_des = nil)
+	def DBCSignalMatcher(line, file_des = nil)
 		if line =~ %r%^\s*SG_\s+(\w+)\s+:\s+(\d+)\|(\d+)@(\d)(\+|-).*$% then
 			signal = CANSignal.new($1, $2.to_i, $3.to_i, $4 == "0", $5 == "+")
 			signal.start_bit = ChangeMotorolaOrderMSB2LSB($2.to_i, $3.to_i) if signal.is_big_endian
@@ -53,7 +53,7 @@ class CAN_DBC_Analzyer
 		end	
 	end
 
-	def CANMessageRecognizer(line, file_des = nil)
+	def DBCMessageMatcher(line, file_des = nil)
 		if line =~ %r|^BO_\s+(\d+)\s+(\w+)\s*:.*$| then
 			msg = CANMessage.new($2, $1.to_i)
 			if file_des != nil then
@@ -82,12 +82,12 @@ can_database = analyzer.AnalyzeDBCFile("test.dbc")
 puts "Start Generate Code"
 template ="code_template.txt"
 File.open( template ) { |fh| 
-  erb_engine = ERB.new( fh.read ) 
-  print erb_engine.result( binding )    
+	erb_engine = ERB.new( fh.read ) 
+	print erb_engine.result( binding )    
 }
 #=end
 
-#print CAN_DBC_Analzyer.new.methods.collect! {|item| item if item.to_s =~ %r!^\w+Recognizer$! }
+#print CAN_DBC_Analzyer.new.methods.collect! {|item| item if item.to_s =~ %r!^\w+Matcher$! }
 
 =begin
 template =" Service.java"
