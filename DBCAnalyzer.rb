@@ -33,8 +33,8 @@ class CAN_DBC_Analzyer
         
         File.open(file_name) do | dbc_file |
             parser_partterns = CAN_DBC_Analzyer.new.methods.select{
-                 |item| item.to_s =~ %r!^DBC.+Matcher$! 
-                }.map{ |item| method(item) }
+                 |item| item.to_s =~ /^DBC.+Matcher$/i 
+                }.map { |item| method(item) }
             dbc_file.each_line do | line |
                 parser_partterns.each { | parttern | parttern.call(line, file_descriptor) }
             end
