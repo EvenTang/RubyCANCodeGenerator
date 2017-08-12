@@ -43,7 +43,6 @@ class CAN_DBC_Analzyer
                  |item| item.to_s =~ /^DBC.+Matcher$/i 
                 }.map { |item| method(item) }
 
-            #parser_partterns = [:DBCSignalMatcher, :DBCMessageMatcher]
             dbc_file.each_line do | line |
                 parser_partterns.each { | parttern | parttern.call(line, file_descriptor) }
             end
@@ -68,20 +67,6 @@ class CAN_DBC_Analzyer
                 end
             end
 
-             
-=begin
-            $6 =~ %r!\((-?\d+(\.\d+)?),(-?\d+(\.\d+)?)\)\s+\[(-?\d+(\.\d+)?)\s*\|\s*(-?\d+(\.\d+)?)\](.+)!
-            signal.factor = $1.to_f
-            signal.offset = $3.to_f
-            signal.minimun = $5.to_f
-            signal.maximun = $7.to_f
-
-            $9 =~ %r!"(\w*)"\s+([\w,]*)!
-            signal.unit = $1
-            #signal.receivers = if $2 != "" then $2.split(",") else print $2 [] end  
-            puts line
-            puts $2
-=end
             if file_des != nil then
                 file_des.messages.last.signals.push signal          
             end
@@ -115,31 +100,24 @@ class CAN_DBC_Analzyer
     end
 end
 
-#=begin
+
 puts "Start Parsing!"
 analyzer = CAN_DBC_Analzyer.new
-can_database = analyzer.AnalyzeDBCFile("A_eScooter_CAN_V0.32.dbc")
-puts "Start Generate Code"
-template ="code_template.txt"
-file_name = "./il.h"
-f = File.new(file_name, "w") 
-File.open( template ) { |fh| 
-    erb_engine = ERB.new( fh.read ) 
-    #print erb_engine.result( binding )    
-    f.print erb_engine.result( binding )   
-}
-#=end
 
-
-
-=begin
-template =" Service.java"
-path = "/src/com/#{projectPath}/#{bean.package}/service"  
-File.makedirs(path) unless FileTest.exist?(path) 
-file = "#{path}/I#{bean.domain}Service.java"
-f = File.new(file, "w") 
-File.open( template ) { |fh| 
-  erb_engine = ERB.new( fh.read ) 
-  f.print erb_engine.result( binding )    
-}
-=end
+if ARGV.size > 0 and ARGV[0] =~ /.*\.dbc/
+    puts "Start Analyze DBC file #{ARGV[0]}"
+    can_database = analyzer.AnalyzeDBCFile(ARGV[0])
+    puts "Finished DBC file parsing"
+    puts "Start Generate Code"
+    template_list = Dir["./*.erb"]
+    template_list.each do | temp_file |
+        if temp_file =~ /(.*)\.erb/
+            f = File.new($1, "w") 
+            puts "Generating #{$1}"
+            File.open(temp_file) { |fh| 
+                erb_engine = ERB.new( fh.read ) 
+                f.print erb_engine.result( binding )   
+            }
+        end
+    end
+end
